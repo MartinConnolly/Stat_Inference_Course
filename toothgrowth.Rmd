@@ -1,0 +1,85 @@
+---
+title: "Tooth Growth Analysis"
+author: "Martin Connolly"
+date: "June 21, 2015"
+output: pdf_document
+---
+
+# Exploratory Analysis
+
+Loading data
+
+```{r, echo=TRUE}
+library(datasets)
+library(ggplot2)
+library(dplyr, quietly = TRUE, warn.conflicts = FALSE)
+test_data <- ToothGrowth
+str(test_data)
+summary(test_data)
+```
+
+Dose data are categorical rather than continuous, so need to convert this to a factor variable.
+
+```{r, echo=TRUE}
+test_data$dose <- factor(test_data$dose)
+```
+
+
+```{r, echo=TRUE, warning=FALSE}
+ggplot(test_data, aes(x=dose, y=len)) +
+        geom_violin(alpha=0.5) +
+        geom_point(alpha=0.5) +
+        labs(x="Dose",y="Length") + facet_grid(.~supp) +
+        ggtitle("Dose versus length")
+
+```
+
+From the above chart, we can see that variability is not consistent, which we will need to take account of when performing any tests.
+
+# Compare tooth length and supplement type
+
+```{r, echo=TRUE}
+len_OJ <- select(filter(test_data, supp == "OJ"), len)
+len_VC <- select(filter(test_data, supp == "VC"), len)
+test_supp <- t.test(len_OJ, len_VC, conf.level=.95, var.equal=FALSE, paired=FALSE, alternative ="two.sided")
+test_supp
+```
+
+
+We can see that the p-value is `r test_supp$p.value` which is higher than 5% and the confidence interval contains zero, so we cannot reject the null hypothesis and we cannot say that the type of supplement alone will affect tooth growth.
+
+# Compare tooth growth and dose
+
+```{r, echo=TRUE}
+#subset data based on dose
+len_small_dose <- select(filter(test_data, dose == 0.5), len)
+len_medium_dose <- select(filter(test_data, dose == 1), len)
+len_large_dose <- select(filter(test_data, dose == 2), len)
+```
+
+## Compare effect on length of small dose (0.5) of supplement versus medium dose (1.0)
+
+```{r, echo=TRUE}
+test_dose_1 <- t.test(len_small_dose, len_medium_dose, conf.level=.95, var.equal=FALSE, paired=FALSE, alternative ="two.sided")
+test_dose_1
+```
+
+## Compare effect on length of medium dose (1.0) of supplement versus large dose (2.0)
+
+```{r, echo=TRUE}
+test_dose_2 <- t.test(len_medium_dose, len_large_dose, conf.level=.95, var.equal=FALSE, paired=FALSE, alternative ="two.sided")
+test_dose_2
+```
+
+## Compare effect on length of small dose (0.5) of supplement versus large dose (2.0)
+
+```{r, echo=TRUE}
+test_dose_3 <- t.test(len_small_dose, len_large_dose, conf.level=.95, var.equal=FALSE, paired=FALSE, alternative ="two.sided")
+test_dose_3
+```
+
+# Conclusion
+
+We have to reject the null hypothesis for all three t-tests and conclude that dosage of the supplements affect tooth growth.
+
+
